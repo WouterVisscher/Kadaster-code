@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labelnet"
+version = "0.2.0"
+description = "U-Net pipeline that learns optimal road label placement from map images"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy==2.4.2",
+    "pillow==12.1.1",
+    "matplotlib==3.10.8",
+    "scikit-learn==1.8.0",
+    "requests==2.32.3",
+    "torch",
+    "torchvision",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["labelnet"]

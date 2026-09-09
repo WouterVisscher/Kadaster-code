@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+
+# IDE / tooling
+.idea/
+.ipynb_checkpoints/
+.ruff_cache/
+
+# Data & model artifacts
+data/
+checkpoints/
+evaluation.png

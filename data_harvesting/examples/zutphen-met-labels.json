@@ -1,0 +1,86 @@
+[
+  {
+    "Bytes Received": 71476,
+    "Bytes Total": 71476,
+    "Cache (control)": "Always load from network, do not check cache",
+    "Cache (save)": "Can store result in cache",
+    "Headers": {
+      "User-Agent": "Mozilla/5.0 QGIS/33404/Ubuntu 24.04.3 LTS"
+    },
+    "ID": "pp:4484 (QgsWmsImageDownloadHandler)",
+    "Initiator": "QgsWmsImageDownloadHandler",
+    "Operation": "GET",
+    "Query": {
+      "BBOX": "718124.3832041401183%2C5781604.5745665906%2C718504.381002129172%2C5781984.572359534912",
+      "CRS": "EPSG%3A25831",
+      "DPI": "96",
+      "FORMAT": "image%2Fpng",
+      "FORMAT_OPTIONS": "dpi%3A96",
+      "HEIGHT": "512",
+      "LAYERS": "brtachtergrondkaart",
+      "MAP_RESOLUTION": "96",
+      "REQUEST": "GetMap",
+      "SERVICE": "WMS",
+      "STYLES": "",
+      "TRANSPARENT": "TRUE",
+      "VERSION": "1.3.0",
+      "WIDTH": "512"
+    },
+    "Replies": 2,
+    "Reply": {
+      "Cache (result)": "Read from network",
+      "Headers": {
+        "Accept-Ranges": "bytes",
+        "Content-Length": "71476",
+        "Content-Type": "image/png",
+        "Date": "Thu, 12 Feb 2026 09:58:38 GMT"
+      },
+      "Status": "200"
+    },
+    "Thread": "0x0000592d477db870",
+    "Total time (ms)": 105,
+    "URL": "http://localhost/mapserver?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&BBOX=718124.3832041401183%2C5781604.5745665906%2C718504.381002129172%2C5781984.572359534912&CRS=EPSG%3A25831&WIDTH=512&HEIGHT=512&LAYERS=brtachtergrondkaart&STYLES=&FORMAT=image%2Fpng&DPI=96&MAP_RESOLUTION=96&FORMAT_OPTIONS=dpi%3A96&TRANSPARENT=TRUE"
+  },
+  {
+    "Bytes Received": 68254,
+    "Bytes Total": 68254,
+    "Cache (control)": "Always load from network, do not check cache",
+    "Cache (save)": "Can store result in cache",
+    "Headers": {
+      "User-Agent": "Mozilla/5.0 QGIS/33404/Ubuntu 24.04.3 LTS"
+    },
+    "ID": "pp:4484 (QgsWmsImageDownloadHandler)",
+    "Initiator": "QgsWmsImageDownloadHandler",
+    "Operation": "GET",
+    "Query": {
+      "BBOX": "718127.6746903730091%2C5781504.603380073793%2C718507.6719946555095%2C5781884.600679310039",
+      "CRS": "EPSG%3A25831",
+      "DPI": "96",
+      "FORMAT": "image%2Fpng",
+      "FORMAT_OPTIONS": "dpi%3A96",
+      "HEIGHT": "512",
+      "LAYERS": "brtachtergrondkaart",
+      "MAP_RESOLUTION": "96",
+      "REQUEST": "GetMap",
+      "SERVICE": "WMS",
+      "STYLES": "",
+      "TRANSPARENT": "TRUE",
+      "VERSION": "1.3.0",
+      "WIDTH": "512"
+    },
+    "Replies": 1,
+    "Reply": {
+      "Cache (result)": "Read from network",
+      "Headers": {
+        "Accept-Ranges": "bytes",
+        "Content-Length": "68254",
+        "Content-Type": "image/png",
+        "Date": "Thu, 12 Feb 2026 09:58:38 GMT"
+      },
+      "Status": "200"
+    },
+    "Thread": "0x0000592d477db8a0",
+    "Total time (ms)": 94,
+    "URL": "http://localhost/mapserver?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&BBOX=718127.6746903730091%2C5781504.603380073793%2C718507.6719946555095%2C5781884.600679310039&CRS=EPSG%3A25831&WIDTH=512&HEIGHT=512&LAYERS=brtachtergrondkaart&STYLES=&FORMAT=image%2Fpng&DPI=96&MAP_RESOLUTION=96&FORMAT_OPTIONS=dpi%3A96&TRANSPARENT=TRUE"
+  }
+]
