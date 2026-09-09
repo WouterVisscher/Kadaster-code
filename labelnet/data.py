@@ -33,12 +33,17 @@ def _image_index(path: Path) -> int:
     return int(path.stem[len("image_"):])
 
 
+def load_image(path: Path, size: int) -> np.ndarray:
+    """Load one road network image as a ``(size, size)`` uint8 mask with values in {0, 1}."""
+    return _binarize(_load_grayscale(Path(path), size))
+
+
 def load_image_pair(input_path: Path, target_path: Path, size: int) -> tuple[np.ndarray, np.ndarray]:
     """Load one (road network, label placement) image pair, binarized.
 
     Returns two ``(size, size)`` uint8 arrays with values in {0, 1}.
     """
-    return _binarize(_load_grayscale(input_path, size)), _binarize(_load_grayscale(target_path, size))
+    return load_image(input_path, size), load_image(target_path, size)
 
 
 def load_dataset(input_dir: Path, target_dir: Path, size: int) -> tuple[np.ndarray, np.ndarray]:

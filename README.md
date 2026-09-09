@@ -7,7 +7,7 @@ image pairs harvested from the PDOK/BRT map (see [data harvesting](data_harvesti
 ## Project layout
 
 ```
-├── main.py                  # entry point: train + evaluate + visualize
+├── main.py                  # entry point: train + evaluate + single-image inference
 ├── labelnet/                # the Python package
 │   ├── config.py            # all knobs in one frozen dataclass
 │   ├── data.py              # image loading, binarization, train/test split
@@ -93,10 +93,16 @@ python main.py --epochs 2 --device cpu
 
 # Evaluate an existing checkpoint without training
 python main.py --checkpoint checkpoints/labelnet_last.pt --no-show
+
+# Run the model on a single road network image -> binarized placement mask
+python main.py --checkpoint checkpoints/labelnet_last.pt --image road.jpg --out placement.png
 ```
 
 Training saves the final weights to `checkpoints/labelnet_last.pt` and prints
 train/validation loss per epoch.
+
+`--image` saves a uint8 mask (255 = label placement) at the model's output size
+(512x512); threshold for the binary mask is 0.5 on the model's [0, 1] output.
 
 ## Tests
 
