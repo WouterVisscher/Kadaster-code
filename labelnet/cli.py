@@ -8,6 +8,7 @@ Subcommands:
     sweep     sweep the alpha/beta thresholds over the four scale contexts
     accuracy  evaluate the predictions against the ground truth
     collect   data collection tools (download, extract, combine)
+    serve     run a checkpoint as a prediction service (FastAPI)
 """
 
 from __future__ import annotations
@@ -143,6 +144,12 @@ def _cmd_collect_combine(args: argparse.Namespace) -> None:
     combine_label_folders(args.source, args.out, args.folders, start_points)
 
 
+def _cmd_serve(args: argparse.Namespace) -> None:
+    from .serve import serve
+
+    serve(args.checkpoint, model_name=args.model, device=args.device, host=args.host, port=args.port)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="labelnet", description="Train and run road label placement models")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -214,6 +221,14 @@ def main(argv: list[str] | None = None) -> None:
     c.add_argument("folders", nargs="+", help="label folders, in the order to combine them")
     c.add_argument("--start", action="append", default=None, metavar="FOLDER=INDEX", help="start index for a folder (repeatable)")
     c.set_defaults(func=_cmd_collect_combine)
+
+    p = sub.add_parser("serve", help="run a checkpoint as a prediction service (FastAPI)")
+    p.add_argument("--checkpoint", type=Path, required=True)
+    p.add_argument("--model", default=None, help="model name (default: inferred from the checkpoint name)")
+    p.add_argument("--device", default="auto", help="auto | cpu | cuda | xpu")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8000)
+    p.set_defaults(func=_cmd_serve)
 
     args = parser.parse_args(argv)
     args.func(args)

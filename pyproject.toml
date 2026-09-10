@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labelnet"
+version = "0.1.0"
+description = "Train and run neural networks that place road labels on maps"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Training and inference
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "numpy==2.4.2",
+    "pillow==12.1.1",
+    "matplotlib==3.10.8",
+    "scikit-learn==1.8.0",
+    "requests==2.32.5",
+    # Georeferencing and vector output (predict --geojson, evaluate)
+    "affine>=2.4",
+    "rasterio>=1.3",
+    "shapely>=2.0",
+    "geopandas>=0.14",
+    # Serving (labelnet serve)
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+labelnet = "labelnet.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["labelnet*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
