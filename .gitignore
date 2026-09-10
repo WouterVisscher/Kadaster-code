@@ -1,1 +1,15 @@
-/Models/*.pth
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Data and artifacts (fetched or generated, never tracked)
+data/
+checkpoints/
+predictions/
+outputs/
+Models/
