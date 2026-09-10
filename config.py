@@ -1,13 +1,13 @@
 import os
 
 model_name = "stackedhourglass" #model_name should be the same as the name of the json file in the Data/JSON_files folder, and the same as the name of the folder in Data/Roadnetwork and Data/Labels, need to fix that
-model_path = "".join([os.getcwd(),"/Models/",model_name,"/"])
+model_path = "".join([os.getcwd(),"/checkpoints/",model_name,"/"])
 dataname = "combined"
 
 #json_path = "".join([os.getcwd(),"/Data/JSON_files/",model_name,".json"])
-input_folder = "".join([os.getcwd(),"/Data/Roadnetwork/",dataname])
-output_folder = "".join([os.getcwd(),"/Data/Labels/",dataname])
-results_folder = "".join([os.getcwd(),"/Data/Predictions/"])
+input_folder = "".join([os.getcwd(),"/data/roadnetwork/",dataname])
+output_folder = "".join([os.getcwd(),"/data/labels/",dataname])
+results_folder = "".join([os.getcwd(),"/predictions/"])
 
 input_image_height = 360
 input_image_width = 640
