@@ -64,13 +64,15 @@ def label_polygons_with_overlap_scores(
     label_shapefile_path: Path,
     crs: str | None,
     prediction_shapefile_path: Path | None = None,
-) -> None:
+) -> tuple[list, list[float]]:
     """Vectorise the prediction and label masks and score their overlap.
 
     ``predictions`` and ``labels`` are float masks with values in [0, 1].
     Pixels above ``alpha`` are kept in the prediction (threshold function);
     label polygons whose overlap with the prediction is below ``beta`` are
     omitted from the output (omission function).
+
+    Returns the kept label geometries and their overlap scores.
     """
     binary_predictions = (np.asarray(predictions) > alpha).astype(np.uint8)
     binary_labels = (np.asarray(labels) > 0.5).astype(np.uint8)
@@ -100,3 +102,5 @@ def label_polygons_with_overlap_scores(
             crs,
             value=[1] * len(prediction_polygons),
         )
+
+    return kept_geometries, kept_scores

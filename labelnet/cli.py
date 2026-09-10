@@ -1,10 +1,13 @@
 """Command line interface for labelnet.
 
 Subcommands:
-    train    train a model and save its final predictions
-    predict  run a checkpoint on a single road network image
-    tune     grid-search learning rate and batch size
-    compare  compare predictions of all intermediate checkpoints
+    train     train a model and save its final predictions
+    predict   run a checkpoint on a single road network image
+    tune      grid-search learning rate and batch size
+    compare   compare predictions of all intermediate checkpoints
+    sweep     sweep the alpha/beta thresholds over the four scale contexts
+    accuracy  evaluate the predictions against the ground truth
+    collect   data collection tools (download, extract, combine)
 """
 
 from __future__ import annotations
@@ -99,6 +102,47 @@ def _cmd_compare(args: argparse.Namespace) -> None:
     run_comparison(_config_from_args(args))
 
 
+def _cmd_sweep(args: argparse.Namespace) -> None:
+    from .evaluate.sweep import run_sweep
+
+    run_sweep(
+        _config_from_args(args),
+        args.checkpoint,
+        alphas=args.alphas,
+        betas=args.betas,
+        image_index=args.image_index,
+        plot=not args.no_plot,
+    )
+
+
+def _cmd_accuracy(args: argparse.Namespace) -> None:
+    from .evaluate.accuracy import run_accuracy
+
+    run_accuracy(_config_from_args(args), args.checkpoint, alphas=args.alphas, betas=args.betas)
+
+
+def _cmd_collect_download(args: argparse.Namespace) -> None:
+    from .collect.download_images import download_images
+
+    download_images(args.json, args.out)
+
+
+def _cmd_collect_extract(args: argparse.Namespace) -> None:
+    from .collect.extract_labels import extract_rvimage_masks
+
+    extract_rvimage_masks(args.json, args.out, args.width, args.height)
+
+
+def _cmd_collect_combine(args: argparse.Namespace) -> None:
+    from .collect.extract_labels import combine_label_folders
+
+    start_points: dict[str, int] = {}
+    for spec in args.start or []:
+        folder, index = spec.split("=", 1)
+        start_points[folder] = int(index)
+    combine_label_folders(args.source, args.out, args.folders, start_points)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="labelnet", description="Train and run road label placement models")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -135,6 +179,41 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("compare", help="compare predictions of all intermediate checkpoints")
     _add_model_args(p)
     p.set_defaults(func=_cmd_compare)
+
+    p = sub.add_parser("sweep", help="sweep the alpha/beta thresholds over the four scale contexts")
+    _add_model_args(p)
+    p.add_argument("--checkpoint", type=Path, required=True)
+    p.add_argument("--image-index", type=int, default=0, help="request index in the context JSON log (default: 0)")
+    p.add_argument("--alphas", nargs="+", type=float, default=None, help="threshold values (default: 0.0..0.95 step 0.05)")
+    p.add_argument("--betas", nargs="+", type=float, default=None, help="omission values (default: 0.0..0.95 step 0.05)")
+    p.add_argument("--no-plot", action="store_true", help="do not save the 3D bar charts")
+    p.set_defaults(func=_cmd_sweep)
+
+    p = sub.add_parser("accuracy", help="evaluate the predictions against the ground truth")
+    _add_model_args(p)
+    p.add_argument("--checkpoint", type=Path, required=True)
+    p.add_argument("--alphas", nargs="+", type=float, default=None, help="threshold values (default: 0.0..0.5 step 0.05)")
+    p.add_argument("--betas", nargs="+", type=float, default=None, help="omission values (default: 0.0..0.5 step 0.05)")
+    p.set_defaults(func=_cmd_accuracy)
+
+    p = sub.add_parser("collect", help="data collection tools")
+    collect_sub = p.add_subparsers(dest="collect_command", required=True)
+    c = collect_sub.add_parser("download", help="download the images of a WMS request log")
+    c.add_argument("--json", type=Path, required=True, help="WMS request log (JSON)")
+    c.add_argument("--out", type=Path, required=True, help="directory to save the images in")
+    c.set_defaults(func=_cmd_collect_download)
+    c = collect_sub.add_parser("extract", help="render the rvimage annotation JSON as label masks")
+    c.add_argument("--json", type=Path, required=True, help="rvimage annotation JSON file")
+    c.add_argument("--out", type=Path, required=True, help="directory to save the masks in")
+    c.add_argument("--width", type=int, default=640)
+    c.add_argument("--height", type=int, default=360)
+    c.set_defaults(func=_cmd_collect_extract)
+    c = collect_sub.add_parser("combine", help="copy label folders into one combined folder")
+    c.add_argument("--source", type=Path, required=True, help="root directory of the label folders")
+    c.add_argument("--out", type=Path, required=True, help="combined output directory")
+    c.add_argument("folders", nargs="+", help="label folders, in the order to combine them")
+    c.add_argument("--start", action="append", default=None, metavar="FOLDER=INDEX", help="start index for a folder (repeatable)")
+    c.set_defaults(func=_cmd_collect_combine)
 
     args = parser.parse_args(argv)
     args.func(args)
