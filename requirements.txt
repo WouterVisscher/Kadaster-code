@@ -1,3 +1,5 @@
+# Exact research environment (CUDA 12.8). For a CPU install, use
+# `pip install -e ".[dev]"` after installing the CPU torch wheel, see README.
 --find-links https://download.pytorch.org/whl/cu128
 torch==2.10.0
 torchvision==0.25.0

@@ -9,9 +9,11 @@ description = "Train and run neural networks that place road labels on maps"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    # Training and inference
-    "torch==2.10.0",
-    "torchvision==0.25.0",
+    # Training and inference. Pinned to a floor only, so a pre-installed
+    # CPU or CUDA build of torch is kept; requirements.txt holds the exact
+    # research-environment pins.
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
     "numpy==2.4.2",
     "pillow==12.1.1",
     "matplotlib==3.10.8",
