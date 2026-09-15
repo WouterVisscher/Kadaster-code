@@ -36,6 +36,28 @@ def resolve_device(name: str = "auto") -> torch.device:
     return torch.device(name)
 
 
+def disable_unusable_miopen(device: torch.device) -> None:
+    """Fall back to the precompiled ATen kernels if MIOpen cannot run on this GPU.
+
+    The MIOpen shipped in the ROCm wheels has prebuilt kernels only for
+    gfx9xx/gfx1030; on other targets (e.g. the Radeon 8060S, gfx1151) it
+    falls back to JIT codegen, which fails. Disable MIOpen (the
+    ``torch.backends.cudnn`` flag) so convolutions and batch norm use the
+    precompiled ATen HIP kernels instead.
+    """
+    if device.type != "cuda":
+        return
+    try:
+        x = torch.randn(1, 1, 8, 8, device=device)
+        torch.nn.functional.batch_norm(
+            x, None, None, torch.ones(1, device=device), torch.zeros(1, device=device), True, 0.1, 1e-5
+        )
+        torch.cuda.synchronize()
+    except RuntimeError:
+        torch.backends.cudnn.enabled = False
+        print("MIOpen unavailable on this GPU, falling back to native kernels")
+
+
 def to_tensor(array: np.ndarray) -> torch.Tensor:
     """(N, H, W, 1) numpy array -> (N, 1, H, W) float tensor."""
     return torch.from_numpy(array).permute(0, 3, 1, 2).float()
@@ -61,6 +83,7 @@ def train_model(config: Config, intermediate_saves: bool = True) -> TrainingResu
     batch_size = config.batch_size if config.batch_size is not None else hyper.batch_size
 
     device = resolve_device(config.device)
+    disable_unusable_miopen(device)
     model.to(device)
     print(f"Using device: {device}")
 
