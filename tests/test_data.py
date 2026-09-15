@@ -1,6 +1,7 @@
 """Loading image pairs and the train/test split."""
 
 import numpy as np
+import pytest
 
 from labelnet.data import data_split, load_images
 
@@ -16,6 +17,15 @@ def test_load_images_shapes(dataset):
 def test_load_images_none_uses_disk(dataset):
     inputs, _ = load_images(dataset.input_folder, dataset.output_folder, None, 32, 64)
     assert inputs.shape[0] == 8
+
+
+def test_load_images_no_pairs_raises(tmp_path):
+    input_folder = tmp_path / "input"
+    output_folder = tmp_path / "output"
+    input_folder.mkdir()
+    output_folder.mkdir()
+    with pytest.raises(ValueError, match="No image_\\*\\.jpg files found"):
+        load_images(input_folder, output_folder, None, 32, 64)
 
 
 def test_data_split(dataset):

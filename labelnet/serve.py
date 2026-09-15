@@ -31,7 +31,9 @@ from . import __version__
 from .config import Config
 
 
-def create_app(checkpoint: Path, model_name: str | None = None, device: str = "auto") -> FastAPI:
+def create_app(
+    checkpoint: Path, model_name: str | None = None, device: str = "auto", config: Config | None = None
+) -> FastAPI:
     """Build the FastAPI app around the checkpoint at ``checkpoint``."""
     state: dict = {}
 
@@ -40,7 +42,7 @@ def create_app(checkpoint: Path, model_name: str | None = None, device: str = "a
         resolved_name = model_name or inference.infer_model_name(checkpoint)
         state["model"] = inference.load_model(resolved_name, checkpoint, device)
         state["model_name"] = resolved_name
-        state["config"] = Config()
+        state["config"] = config or Config()
         yield
         state.clear()
 
@@ -89,11 +91,19 @@ def create_app(checkpoint: Path, model_name: str | None = None, device: str = "a
     return app
 
 
-def serve(checkpoint: Path, model_name: str | None = None, device: str = "auto", host: str = "127.0.0.1", port: int = 8000) -> None:
+def serve(
+    checkpoint: Path,
+    model_name: str | None = None,
+    device: str = "auto",
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    image_size: tuple[int, int] | None = None,
+) -> None:
     """Start the prediction service (blocking)."""
     import uvicorn
 
-    app = create_app(checkpoint, model_name, device)
+    config = Config(input_image_width=image_size[0], input_image_height=image_size[1]) if image_size else None
+    app = create_app(checkpoint, model_name, device, config)
     uvicorn.run(app, host=host, port=port)
 
 
@@ -102,10 +112,15 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--model", default=None, help="model name (default: inferred from the checkpoint name)")
     parser.add_argument("--device", default="auto", help="auto | cpu | cuda | xpu")
+    parser.add_argument("--image-size", default=None, metavar="WIDTHxHEIGHT", help="input size the checkpoint was trained with (default: 640x360)")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
-    serve(args.checkpoint, model_name=args.model, device=args.device, host=args.host, port=args.port)
+    image_size = None
+    if args.image_size is not None:
+        width_s, height_s = args.image_size.lower().split("x", 1)
+        image_size = (int(width_s), int(height_s))
+    serve(args.checkpoint, model_name=args.model, device=args.device, host=args.host, port=args.port, image_size=image_size)
 
 
 if __name__ == "__main__":

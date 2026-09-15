@@ -19,33 +19,63 @@ accuracy) lives in `labelnet/evaluate/`.
 
 ## Installation
 
-Python >= 3.10.
+Python >= 3.10. Create a venv, then pick the setup that matches your
+hardware. Each `requirements*.txt` pins the exact research environment
+(torch 2.10.0 / torchvision 0.25.0) for its backend:
+
+| Backend                | Requirements file      | Backend wheel index                                   |
+| ---------------------- | ---------------------- | ----------------------------------------------------- |
+| NVIDIA GPU (CUDA 12.8) | `requirements.txt`     | `https://download.pytorch.org/whl/cu128`              |
+| AMD GPU (ROCm 7.1)     | `requirements-amd.txt` | `https://download.pytorch.org/whl/rocm7.1`            |
+| CPU only               | `requirements-cpu.txt` | `https://download.pytorch.org/whl/cpu`                |
+
+### NVIDIA GPU
 
 ```bash
-pip install -e ".[dev]"
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
 ```
 
-The default `torch` install is the CUDA build. For a CPU-only environment,
-install the CPU wheel first and then the rest:
+### AMD GPU (ROCm)
+
+Works on ROCm-compatible GPUs, e.g. the Radeon RX 7900 XTX (gfx1100).
+Only a working AMD GPU driver is required — verify with `rocm-smi`; the
+torch wheel bundles the HIP runtime, so no separate ROCm installation is
+needed.
 
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-pip install -e ".[dev]"
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-amd.txt
+pip install -e .
 ```
 
-The CPU wheel matches the version pin, so the second step leaves it in place.
-`requirements.txt` mirrors `pyproject.toml` and works with a plain venv if you
-prefer not to install the package itself.
+PyTorch exposes the AMD device through the regular `torch.cuda` API, so
+`--device auto|cuda` and everything else works unchanged.
+
+### CPU only
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-cpu.txt
+pip install -e .
+```
+
+As an alternative to the requirements files, `pip install -e ".[dev]"`
+installs with loose floors from `pyproject.toml`: it keeps a pre-installed
+CPU or ROCm torch in place, and otherwise pulls the CUDA build from PyPI.
+The requirements files work with a plain venv if you prefer not to install
+the package itself (then run the CLI via `python -m labelnet`).
 
 ## Getting the data
 
-The dataset (1200 training image pairs, test images, ground truth masks and
-WMS request logs) lives in the separate
-[Kadaster-data](https://github.com/WouterVisscher/Kadaster-data) repository:
+The dataset (625 road network / label image pairs, 512x512) lives in the
+separate [Kadaster-data](https://github.com/WouterVisscher/Kadaster-data)
+repository:
 
 ```bash
 git clone https://github.com/WouterVisscher/Kadaster-data.git ../Kadaster-data
-scripts/fetch_data.sh   # copies roadnetwork/, labels/, test/, ground_truth/, json_files/, outputs/ into ./data
+scripts/fetch_data.sh   # copies roadnetwork/ and labels/ into ./data
 ```
 
 Set `KADASTER_DATA_SOURCE=/path/to/Kadaster-data` to use a checkout that is not
@@ -53,10 +83,19 @@ a sibling directory. The data repository's README documents the folder layout.
 
 ## Training
 
+The fetched dataset is a flat set of 625 pairs of 512x512 images in
+`data/roadnetwork/` and `data/labels/`, so point the training at it with
+`--data-name ""` and `--image-size 512x512`:
+
 ```bash
-labelnet train --model unet --epochs 100
+labelnet train --model unet --epochs 100 --data-name "" --image-size 512x512 --batch-size 16
 ```
 
+- The defaults (`--data-name combined`, `--image-size 640x360`) match the
+  multi-city `combined` set built with `labelnet collect combine`.
+- Images are cropped, not resized, so the size must fit the actual images.
+- The default U-Net batch size of 32 was tuned for 640x360; on 512x512 it
+  needs more than 24 GB of GPU memory, so pass `--batch-size 16` (or lower).
 - `--model` is matched by prefix, so checkpoint names like
   `unet_dice_ES_63.pth` work too.
 - `--lr` / `--batch-size` override the per-model tuned defaults in
@@ -66,14 +105,17 @@ labelnet train --model unet --epochs 100
   model's predictions on the held-out test set are saved to
   `predictions/<model>/` (use `--compare` for the per-epoch comparison plots
   instead).
-- U-Net needs image dimensions divisible by 8 (the dataset is 640x360).
+- U-Net needs image dimensions divisible by 8 (512 and 640x360 both work).
 
 ## Running predictions
 
-On a single image:
+On a single image (`--image-size` must match the size the checkpoint was
+trained with — default 640x360, or 512x512 for the fetched dataset):
 
 ```bash
 labelnet predict --checkpoint checkpoints/unet/unet_100.pth --image road.jpg --out mask.png
+labelnet predict --checkpoint checkpoints/unet/unet_100.pth --image road.jpg \
+    --image-size 512x512 --out mask.png
 labelnet predict --checkpoint ... --image road.jpg --geojson labels.geojson \
     --bbox minx,miny,maxx,maxy --threshold 0.5
 ```
@@ -82,6 +124,7 @@ As a service:
 
 ```bash
 labelnet serve --checkpoint checkpoints/unet/unet_100.pth --port 8000
+labelnet serve --checkpoint checkpoints/unet/unet_100.pth --image-size 512x512 --port 8000
 
 curl -F image=@road.jpg http://localhost:8000/predict -o prediction.png
 curl -F image=@road.jpg -F bbox=minx,miny,maxx,maxy -F geojson=true \

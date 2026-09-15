@@ -1,8 +1,8 @@
-# Exact research environment (CUDA 12.8). For an AMD GPU, use
-# requirements-amd.txt; for a CPU install, use requirements-cpu.txt.
---extra-index-url https://download.pytorch.org/whl/cu128
-torch==2.10.0+cu128
-torchvision==0.25.0+cu128
+# Exact research environment, CPU only. Torch 2.10.0 CPU build. For an AMD
+# GPU use requirements-amd.txt; for NVIDIA, use requirements.txt.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0+cpu
+torchvision==0.25.0+cpu
 
 numpy==2.4.2
 pillow==12.1.1
