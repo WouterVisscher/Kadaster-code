@@ -20,6 +20,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from ..logger import log
+
 
 def _find_annotations_maps(data: dict):
     """Yield every annotations_map in an rvimage JSON file (Bbox, Rot90, Brush tools)."""
@@ -53,7 +55,7 @@ def extract_rvimage_masks(json_path: Path, output_dir: Path, width: int = 640, h
     saved = 0
     for file_path, content in annotations_map.items():
         if len(content) < 2:
-            print(f"Skipping {file_path}: no annotation data")
+            log(f"Skipping {file_path}: no annotation data")
             continue
         anno_data, size_data = content[0], content[1]
         image_width = size_data.get("w", width)
@@ -74,7 +76,7 @@ def extract_rvimage_masks(json_path: Path, output_dir: Path, width: int = 640, h
         if has_labels:
             mask.save(output_dir / Path(file_path).name, format="JPEG")
             saved += 1
-    print(f"Saved {saved} masks to {output_dir}")
+    log(f"Saved {saved} masks to {output_dir}")
     return saved
 
 
@@ -111,10 +113,10 @@ def combine_label_folders(
         for image_file in image_files:
             destination = output_dir / f"image_{current_index}{image_file.suffix.lower()}"
             shutil.copy2(image_file, destination)
-            print(f"Copied {folder_name}/{image_file.name} -> {destination.name}")
+            log(f"Copied {folder_name}/{image_file.name} -> {destination.name}")
             current_index += 1
 
-    print(f"Combined images written to: {output_dir}")
+    log(f"Combined images written to: {output_dir}")
     return current_index
 
 

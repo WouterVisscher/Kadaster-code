@@ -29,6 +29,7 @@ import numpy as np
 
 from .. import inference, vectorize, wms
 from ..config import Config
+from ..logger import log
 from . import metrics, plots
 
 # The four scale contexts, named after their WMS request logs.
@@ -66,7 +67,7 @@ def _sweep_context(config: Config, model, context: str, alphas: list[float], bet
     json_name = f"{context}.json"
     road_image = wms.fetch_road_network(config, json_name, image_index)
     if road_image is None:
-        print(f"Skipping {context}: could not download the road network image")
+        log(f"Skipping {context}: could not download the road network image")
         return None, None
 
     start_time = time.time()
@@ -75,7 +76,7 @@ def _sweep_context(config: Config, model, context: str, alphas: list[float], bet
 
     label_mask = wms.fetch_label_mask(config, json_name, image_index)
     if label_mask is None:
-        print(f"Skipping {context}: could not download the label image")
+        log(f"Skipping {context}: could not download the label image")
         return None, None
 
     query = wms.query_for(config.json_folder / json_name, image_index)
@@ -125,7 +126,7 @@ def _sweep_context(config: Config, model, context: str, alphas: list[float], bet
             )
 
     total_time = time.time() - start_time
-    print(f"{context}: {len(results)} combinations, inference {inference_time:.3f}s, total {total_time:.3f}s")
+    log(f"{context}: {len(results)} combinations, inference {inference_time:.3f}s, total {total_time:.3f}s")
     return results, (context, inference_time, total_time)
 
 
@@ -187,7 +188,7 @@ def plot_results(results: list[SweepResult], out_dir: Path | None = None) -> Non
             )
         baseline = next((r for r in results if r.context == context and r.alpha == 0 and r.beta == 0), None)
         if baseline is not None:
-            print(
+            log(
                 f"Original labels for {context}: unambiguity={baseline.unambiguity:.4f}, "
                 f"legibility={baseline.legibility:.4f}, number of labels={baseline.n_labels}"
             )
@@ -201,7 +202,7 @@ def plot_final_results(results: list[SweepResult], out_dir: Path | None = None) 
     if len(per_context) < 2:
         return
     if len({len(values) for values in per_context.values()}) != 1:
-        print("Cannot average the results: the (alpha, beta) grids differ between contexts")
+        log("Cannot average the results: the (alpha, beta) grids differ between contexts")
         return
 
     reference = next(iter(per_context.values()))
@@ -220,5 +221,5 @@ def plot_final_results(results: list[SweepResult], out_dir: Path | None = None) 
 
 def time_analysis(timings: list[tuple[str, float, float]]) -> None:
     for context, inference_time, total_time in timings:
-        print(f"Average inference time for {context}: {inference_time:.4f} seconds")
-        print(f"Average total time for {context}: {total_time:.4f} seconds")
+        log(f"Average inference time for {context}: {inference_time:.4f} seconds")
+        log(f"Average total time for {context}: {total_time:.4f} seconds")

@@ -13,6 +13,8 @@ from pathlib import Path
 
 import requests
 
+from ..logger import log
+
 
 def download_images(json_path: Path, out_dir: Path, timeout_seconds: int = 5) -> int:
     """Download every image of the request log to ``out_dir``.
@@ -27,24 +29,24 @@ def download_images(json_path: Path, out_dir: Path, timeout_seconds: int = 5) ->
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    print(f"Downloading {len(data)} images from {json_path} ...")
+    log(f"Downloading {len(data)} images from {json_path} ...")
     saved = 0
     for index, item in enumerate(data):
         url = item.get("URL")
         if not url:
-            print(f"Skipping index {index}: no URL found.")
+            log(f"Skipping index {index}: no URL found.")
             continue
         try:
             response = requests.get(url, timeout=timeout_seconds)
         except Exception as e:
-            print(f"Error downloading {url}: {e}")
+            log(f"Error downloading {url}: {e}")
             continue
         if response.status_code != 200:
-            print(f"Error for {url}: status {response.status_code}")
+            log(f"Error for {url}: status {response.status_code}")
             continue
         (out_dir / f"image_{index}.jpg").write_bytes(response.content)
         saved += 1
-    print(f"Saved {saved} images to {out_dir}")
+    log(f"Saved {saved} images to {out_dir}")
     return saved
 
 

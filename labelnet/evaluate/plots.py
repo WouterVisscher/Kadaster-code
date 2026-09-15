@@ -10,6 +10,8 @@ from matplotlib import colormaps as cm
 from matplotlib.colors import Normalize
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers the 3d projection)
 
+from ..logger import log
+
 
 def bar3d(x, y, z, out_path: Path, title: str, zlabel: str) -> Path:
     """Save a 3D bar chart of ``z`` over the (alpha, beta) grid to ``out_path``."""
@@ -34,5 +36,5 @@ def bar3d(x, y, z, out_path: Path, title: str, zlabel: str) -> Path:
 
     fig.savefig(out_path, dpi=100)
     plt.close(fig)
-    print(f"Saved {out_path}")
+    log(f"Saved {out_path}")
     return out_path

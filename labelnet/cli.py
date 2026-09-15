@@ -14,9 +14,11 @@ Subcommands:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 from pathlib import Path
 
 from .config import Config
+from .logger import format_duration, format_timestamp, log
 
 
 def _parse_image_size(value: str) -> tuple[int, int]:
@@ -72,8 +74,8 @@ def _cmd_train(args: argparse.Namespace) -> None:
         prediction = predict_test_set(config, final_name, x_test)
         save_predictions(config, final_name, x_test, prediction)
 
-    print(f"Last checkpoint: {result.checkpoints[-1]}")
-    print(f"Best epoch: {result.best_epoch}")
+    log(f"Last checkpoint: {result.checkpoints[-1]}")
+    log(f"Best epoch: {result.best_epoch}")
 
 
 def _cmd_predict(args: argparse.Namespace) -> None:
@@ -92,7 +94,7 @@ def _cmd_predict(args: argparse.Namespace) -> None:
 
     if args.out:
         Image.fromarray((mask * 255).astype(np.uint8)).save(args.out)
-        print(f"Saved prediction mask to {args.out}")
+        log(f"Saved prediction mask to {args.out}")
 
     if args.geojson:
         if not args.bbox:
@@ -103,7 +105,7 @@ def _cmd_predict(args: argparse.Namespace) -> None:
         transform = bbox_transform(*parts, mask.shape[1], mask.shape[0])
         polygons = mask_to_polygons((mask > args.threshold).astype(np.uint8), transform)
         write_vectors(args.geojson, polygons, None, value=[1] * len(polygons))
-        print(f"Wrote {len(polygons)} polygons to {args.geojson}")
+        log(f"Wrote {len(polygons)} polygons to {args.geojson}")
 
 
 def _cmd_tune(args: argparse.Namespace) -> None:
@@ -256,4 +258,11 @@ def main(argv: list[str] | None = None) -> None:
     p.set_defaults(func=_cmd_serve)
 
     args = parser.parse_args(argv)
+    started = dt.datetime.now().astimezone()
+    log(f"Starting '{args.command}' ...")
     args.func(args)
+    ended = dt.datetime.now().astimezone()
+    log(
+        f"Finished '{args.command}': started {format_timestamp(started)}, "
+        f"ended {format_timestamp(ended)}, total {format_duration((ended - started).total_seconds())}"
+    )

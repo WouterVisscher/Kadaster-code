@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from .config import Config
 from .data import data_split
+from .logger import log
 from .losses import DiceBCELoss, EarlyStopping
 from .models import build_model
 
@@ -55,7 +56,7 @@ def disable_unusable_miopen(device: torch.device) -> None:
         torch.cuda.synchronize()
     except RuntimeError:
         torch.backends.cudnn.enabled = False
-        print("MIOpen unavailable on this GPU, falling back to native kernels")
+        log("MIOpen unavailable on this GPU, falling back to native kernels")
 
 
 def to_tensor(array: np.ndarray) -> torch.Tensor:
@@ -85,7 +86,7 @@ def train_model(config: Config, intermediate_saves: bool = True) -> TrainingResu
     device = resolve_device(config.device)
     disable_unusable_miopen(device)
     model.to(device)
-    print(f"Using device: {device}")
+    log(f"Using device: {device}")
 
     criterion = DiceBCELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -109,7 +110,7 @@ def train_model(config: Config, intermediate_saves: bool = True) -> TrainingResu
     )
 
     config.model_path.mkdir(parents=True, exist_ok=True)
-    print("start training")
+    log("start training")
 
     train_losses: list[float] = []
     val_losses: list[float] = []
@@ -138,13 +139,13 @@ def train_model(config: Config, intermediate_saves: bool = True) -> TrainingResu
                 val_loss += criterion(model(inputs), masks).item()
         val_losses.append(val_loss / len(test_loader))
 
-        print(f"Epoch {epoch + 1}/{config.epochs} | Train Loss: {train_losses[-1]:.5f} | Val Loss: {val_losses[-1]:.5f}")
+        log(f"Epoch {epoch + 1}/{config.epochs} | Train Loss: {train_losses[-1]:.5f} | Val Loss: {val_losses[-1]:.5f}")
 
         early_stopping(val_losses[-1], model)
 
         if early_stopping.early_stop:
             early_stopped = True
-            print("Early stopping at epoch:", epoch + 1)
+            log(f"Early stopping at epoch: {epoch + 1}")
             # Restore the best-seen weights before saving them.
             early_stopping.load_best_model(model)
             checkpoints.append(save_checkpoint(model, config, epoch + 1))
@@ -174,7 +175,7 @@ def tune_model(
     results: list[TrainingResult] = []
     for lr in learning_rates:
         for bs in batch_sizes:
-            print(f"Running {config.model_name} training with learning rate: {lr} and batch size: {bs}")
+            log(f"Running {config.model_name} training with learning rate: {lr} and batch size: {bs}")
             trial = Config(
                 model_name=config.model_name,
                 data_root=config.data_root,

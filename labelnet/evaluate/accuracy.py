@@ -31,6 +31,7 @@ from PIL import Image
 
 from .. import inference, vectorize, wms
 from ..config import Config
+from ..logger import log
 from . import metrics, plots
 
 CONTEXTS = ("LU", "LR", "SU", "SR")
@@ -84,7 +85,7 @@ def get_ground_truth_labels(config: Config) -> dict[str, Path]:
             name = f"{context}{i}"
             mask_path = config.ground_truth_folder / context / f"{name}.jpg"
             if not mask_path.is_file():
-                print(f"Skipping {mask_path}: not found")
+                log(f"Skipping {mask_path}: not found")
                 continue
             bbox, crs = _georeference(config, context, JSON_INDICES[context][i - 1])
             mask = _load_binary_mask(mask_path)
@@ -93,7 +94,7 @@ def get_ground_truth_labels(config: Config) -> dict[str, Path]:
             path = out_dir / f"{name}.geojson"
             vectorize.write_vectors(path, polygons, crs, value=[1] * len(polygons))
             paths[name] = path
-            print(f"Saved ground truth for {name}: {len(polygons)} polygons")
+            log(f"Saved ground truth for {name}: {len(polygons)} polygons")
     return paths
 
 
@@ -107,18 +108,18 @@ def get_original_labels(config: Config) -> dict[str, Path]:
             image_index = JSON_INDICES[context][i - 1]
             label_mask = wms.fetch_label_mask(config, f"enschede_{context}.json", image_index)
             if label_mask is None:
-                print(f"Skipping {name}: could not download the label image")
+                log(f"Skipping {name}: could not download the label image")
                 continue
             bbox, crs = _georeference(config, context, image_index)
             transform = vectorize.bbox_transform(*bbox, label_mask.shape[1], label_mask.shape[0])
             polygons = vectorize.mask_to_polygons((label_mask > 0.5).astype(np.uint8), transform)
             if not polygons:
-                print(f"No label polygons found for {name}")
+                log(f"No label polygons found for {name}")
                 continue
             path = out_dir / f"{name}.geojson"
             vectorize.write_vectors(path, polygons, crs, value=[1] * len(polygons))
             paths[name] = path
-            print(f"Saved original labels for {name}: {len(polygons)} polygons")
+            log(f"Saved original labels for {name}: {len(polygons)} polygons")
     return paths
 
 
@@ -136,11 +137,11 @@ def create_samples(config: Config, checkpoint: Path, alphas: list[float] | None 
             json_name = f"enschede_{context}.json"
             road_image = wms.fetch_road_network(config, json_name, image_index)
             if road_image is None:
-                print(f"Skipping {name}: could not download the road network image")
+                log(f"Skipping {name}: could not download the road network image")
                 continue
             label_mask = wms.fetch_label_mask(config, json_name, image_index)
             if label_mask is None:
-                print(f"Skipping {name}: could not download the label image")
+                log(f"Skipping {name}: could not download the label image")
                 continue
             prediction = inference.predict_image(model, road_image, config)
             bbox, crs = _georeference(config, context, image_index)
@@ -162,7 +163,7 @@ def create_samples(config: Config, checkpoint: Path, alphas: list[float] | None 
                         prediction_path,
                     )
                     written += 1
-    print(f"Wrote {written} prediction sets to {out_dir}")
+    log(f"Wrote {written} prediction sets to {out_dir}")
     return written
 
 
@@ -187,7 +188,7 @@ def _read_geometries(path: Path, reference_crs) -> list:
         try:
             gdf = gdf.to_crs(reference_crs)
         except Exception as exc:
-            print(f"Could not reproject {path}: {exc}")
+            log(f"Could not reproject {path}: {exc}")
             return []
     return list(gdf.geometry)
 
@@ -208,7 +209,7 @@ def calculate_accuracy(
     results: list[AccuracyResult] = []
     for alpha in alphas:
         for beta in betas:
-            print(f"Evaluating for alpha={alpha}, beta={beta}")
+            log(f"Evaluating for alpha={alpha}, beta={beta}")
             tp = tn = fp = fn = 0
             for context in CONTEXTS:
                 for i in range(1, IMAGES_PER_CONTEXT + 1):
@@ -254,12 +255,12 @@ def visualize_accuracy(results: list[AccuracyResult], out_dir: Path | None = Non
     baseline = next((r for r in results if r.alpha == 0 and r.beta == 0), None)
     if baseline is not None:
         total = baseline.tp + baseline.tn + baseline.fp + baseline.fn
-        print(f"original accuracy: {(baseline.tp + baseline.tn) / total if total else 0.0:.4f}")
-        print(f"original recall: {baseline.tp / (baseline.tp + baseline.fn) if (baseline.tp + baseline.fn) else 0.0:.4f}")
-        print(f"original precision: {baseline.tp / (baseline.tp + baseline.fp) if (baseline.tp + baseline.fp) else 0.0:.4f}")
-    print(f"highest accuracy: {max(accuracy):.4f}")
-    print(f"highest recall: {max(recall):.4f}")
-    print(f"highest precision: {max(precision):.4f}")
+        log(f"original accuracy: {(baseline.tp + baseline.tn) / total if total else 0.0:.4f}")
+        log(f"original recall: {baseline.tp / (baseline.tp + baseline.fn) if (baseline.tp + baseline.fn) else 0.0:.4f}")
+        log(f"original precision: {baseline.tp / (baseline.tp + baseline.fp) if (baseline.tp + baseline.fp) else 0.0:.4f}")
+    log(f"highest accuracy: {max(accuracy):.4f}")
+    log(f"highest recall: {max(recall):.4f}")
+    log(f"highest precision: {max(precision):.4f}")
 
     for name, values in (("accuracy", accuracy), ("recall", recall), ("precision", precision)):
         plots.bar3d(
@@ -281,7 +282,7 @@ def run_accuracy(config: Config, checkpoint: Path, alphas: list[float] | None = 
     get_original_labels(config)
     get_ground_truth_labels(config)
     results = calculate_accuracy(config, alphas, betas)
-    print("True Positives:", [r.tp for r in results])
-    print("False Negatives:", [r.fn for r in results])
+    log(f"True Positives: {[r.tp for r in results]}")
+    log(f"False Negatives: {[r.fn for r in results]}")
     visualize_accuracy(results)
     return results

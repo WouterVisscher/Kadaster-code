@@ -17,6 +17,7 @@ import requests
 from PIL import Image
 
 from ..config import Config
+from ..logger import log
 
 
 def load_log(json_path: Path) -> list[dict]:
@@ -61,12 +62,12 @@ def download_image(url: str, timeout_seconds: int = 5) -> Image.Image | None:
     try:
         response = requests.get(url, timeout=timeout_seconds)
     except Exception as e:
-        print(f"Error downloading from URL: {e}")
-        print(f"URL: {url}")
+        log(f"Error downloading from URL: {e}")
+        log(f"URL: {url}")
         return None
     if response.status_code != 200:
-        print(f"Error downloading from URL: Status {response.status_code}")
-        print(f"URL: {url}")
+        log(f"Error downloading from URL: Status {response.status_code}")
+        log(f"URL: {url}")
         return None
     return Image.open(io.BytesIO(response.content))
 
