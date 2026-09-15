@@ -19,20 +19,35 @@ from pathlib import Path
 from .config import Config
 
 
+def _parse_image_size(value: str) -> tuple[int, int]:
+    try:
+        width_str, height_str = value.lower().split("x", 1)
+        width, height = int(width_str), int(height_str)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"expected WIDTHxHEIGHT, got {value!r}") from None
+    if width <= 0 or height <= 0:
+        raise argparse.ArgumentTypeError("width and height must be positive integers")
+    return width, height
+
+
 def _add_model_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--model", default="stackedhourglass", help="model name or prefix (default: stackedhourglass)")
     parser.add_argument("--data-name", default="combined", help="dataset sub-folder (default: combined)")
     parser.add_argument("--data-root", type=Path, default=Path("data"), help="dataset root (default: ./data)")
+    parser.add_argument("--image-size", type=_parse_image_size, default=None, metavar="WIDTHxHEIGHT", help="input/target crop size (default: 640x360)")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--device", default="auto", help="auto | cpu | cuda | xpu")
 
 
 def _config_from_args(args: argparse.Namespace) -> Config:
+    width, height = getattr(args, "image_size", None) or (640, 360)
     return Config(
         model_name=args.model,
         data_name=args.data_name,
         data_root=args.data_root,
         epochs=args.epochs,
+        input_image_width=width,
+        input_image_height=height,
         learning_rate=getattr(args, "lr", None),
         batch_size=getattr(args, "batch_size", None),
         number_of_data_pairs=getattr(args, "pairs", None),
@@ -72,7 +87,8 @@ def _cmd_predict(args: argparse.Namespace) -> None:
     model = load_model(model_name, args.checkpoint, device=args.device)
 
     image = Image.open(args.image)
-    mask = predict_image(model, image, Config())
+    width, height = args.image_size or (640, 360)
+    mask = predict_image(model, image, Config(input_image_width=width, input_image_height=height))
 
     if args.out:
         Image.fromarray((mask * 255).astype(np.uint8)).save(args.out)
@@ -147,7 +163,14 @@ def _cmd_collect_combine(args: argparse.Namespace) -> None:
 def _cmd_serve(args: argparse.Namespace) -> None:
     from .serve import serve
 
-    serve(args.checkpoint, model_name=args.model, device=args.device, host=args.host, port=args.port)
+    serve(
+        args.checkpoint,
+        model_name=args.model,
+        device=args.device,
+        host=args.host,
+        port=args.port,
+        image_size=args.image_size,
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -169,6 +192,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--model", default=None, help="model name (default: inferred from the checkpoint name)")
     p.add_argument("--image", type=Path, required=True, help="input road network image")
     p.add_argument("--device", default="auto")
+    p.add_argument("--image-size", type=_parse_image_size, default=None, metavar="WIDTHxHEIGHT", help="input size the checkpoint was trained with (default: 640x360)")
     p.add_argument("--out", type=Path, default=None, help="save the prediction mask as a PNG")
     p.add_argument("--bbox", default=None, help="minx,miny,maxx,maxy for georeferencing")
     p.add_argument("--threshold", type=float, default=0.5, help="mask threshold for the polygon output")
@@ -226,6 +250,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--model", default=None, help="model name (default: inferred from the checkpoint name)")
     p.add_argument("--device", default="auto", help="auto | cpu | cuda | xpu")
+    p.add_argument("--image-size", type=_parse_image_size, default=None, metavar="WIDTHxHEIGHT", help="input size the checkpoint was trained with (default: 640x360)")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.set_defaults(func=_cmd_serve)

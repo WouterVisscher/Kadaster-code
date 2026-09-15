@@ -23,6 +23,11 @@ def test_subcommand_help(command):
         main([command, "--help"])
 
 
+def test_train_bad_image_size():
+    with pytest.raises(SystemExit):
+        main(["train", "--image-size", "nonsense"])
+
+
 def test_collect_combine(tmp_path):
     source = tmp_path / "source"
     for folder, count in (("a", 2), ("b", 3)):

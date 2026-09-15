@@ -22,8 +22,9 @@ def prepare_input(image: Image.Image, width: int, height: int, threshold: int = 
     if array.ndim == 3 and array.shape[2] > 3:
         array = array[:, :, :3]
     gray = np.mean(array, axis=2, keepdims=True)
-    binary = (gray >= threshold).astype(np.float32)
-    return torch.from_numpy(binary).unsqueeze(0)
+    binary = (gray >= threshold).astype(np.float32).squeeze(axis=2)
+    # The models expect NCHW: (1, 1, height, width).
+    return torch.from_numpy(binary).unsqueeze(0).unsqueeze(0)
 
 
 def predict_image(model: torch.nn.Module, image: Image.Image, config: Config, threshold: int = 128) -> np.ndarray:

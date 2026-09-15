@@ -49,6 +49,13 @@ def load_images(
         # Use however many input images exist on disk.
         number_of_data_pairs = len(list(input_folder.glob("image_*.jpg")))
 
+    if number_of_data_pairs <= 0:
+        raise ValueError(
+            f"No image_*.jpg files found in {input_folder}. Check --data-name "
+            "(default: combined) and --data-root (default: data): both the "
+            "roadnetwork/ and labels/ sub-folders must contain image pairs."
+        )
+
     input_image_array = np.empty([number_of_data_pairs, height, width, 1], dtype=int)
     target_image_array = np.empty([number_of_data_pairs, height, width, 1], dtype=int)
 

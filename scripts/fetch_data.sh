@@ -16,7 +16,7 @@ if [[ ! -d "$SOURCE" ]]; then
 fi
 
 mkdir -p "$ROOT/data"
-for dir in roadnetwork labels test ground_truth json_files outputs; do
+for dir in roadnetwork labels; do
     rm -rf "$ROOT/data/$dir"
     cp -r "$SOURCE/$dir" "$ROOT/data/$dir"
 done
