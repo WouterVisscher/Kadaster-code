@@ -19,10 +19,19 @@ def _load_binary_image(path: Path, height: int, width: int) -> np.ndarray:
     image = Image.open(path)
     array = np.array(image)
 
-    # Crop to the expected size and drop any alpha channel.
-    array = np.delete(
-        np.delete(np.delete(array, np.s_[height::], 0), np.s_[width::], 1), np.s_[3::], 2
-    )
+    if array.ndim == 2:
+        # Grayscale image: give it an explicit channel axis.
+        array = array[:, :, np.newaxis]
+
+    image_height, image_width = array.shape[:2]
+    if image_height < height or image_width < width:
+        raise ValueError(
+            f"{path} is {image_width}x{image_height}, smaller than the "
+            f"configured crop size {width}x{height}. Pass a matching --image-size."
+        )
+
+    # Crop to the top-left (height, width) corner and drop any alpha channel.
+    array = array[:height, :width, :3]
 
     # Average the colour channels, then binarise.
     array = np.mean(array, axis=2, keepdims=True)

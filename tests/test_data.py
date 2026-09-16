@@ -28,6 +28,11 @@ def test_load_images_no_pairs_raises(tmp_path):
         load_images(input_folder, output_folder, None, 32, 64)
 
 
+def test_load_images_smaller_than_crop_raises(dataset):
+    with pytest.raises(ValueError, match="smaller than the configured crop size"):
+        load_images(dataset.input_folder, dataset.output_folder, 8, 32, 128)
+
+
 def test_data_split(dataset):
     x_train, y_train, x_test, y_test = data_split(
         dataset.input_folder, dataset.output_folder, 8, 32, 64, 0.2, 42
