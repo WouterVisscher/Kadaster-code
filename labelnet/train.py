@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,7 +28,42 @@ class TrainingResult:
     checkpoints: list[Path]
 
 
+def configure_rocm_environment() -> None:
+    """Work around known ROCm/MIOpen issues, before the HIP runtime starts up.
+
+    This must run before the *first* ``torch.cuda`` call in the process: HSA
+    only reads ``HSA_OVERRIDE_GFX_VERSION`` when it enumerates GPU agents, so
+    setting it any later has no effect. ``resolve_device`` calls this before
+    touching ``torch.cuda`` for that reason; nothing else in this codebase
+    touches it earlier.
+
+    - ``HSA_OVERRIDE_GFX_VERSION=11.0.0``: gfx1151 (the Radeon 8060S /
+      "Strix Halo" APU) support in the ROCm wheels is still immature. On the
+      rocm7.1 wheels, MIOpen JIT-compiles its kernels for this target and a
+      few of them (e.g. the batch norm spatial kernel) fail with an
+      inline-asm codegen error; on the rocm10.0 wheels, the gfx1151 code
+      objects fail to load outright under WSL2 (``hipErrorInvalidImage``).
+      Reporting the ISA-compatible gfx1100 (e.g. the RX 7900 XTX, which is
+      fully supported) instead makes torch load the known-good gfx1100
+      binaries and avoids both failure modes. This is a no-op on GPUs that
+      already report gfx1100.
+    - ``MIOPEN_FIND_MODE=FAST``: works around a GPU-timer resolution issue
+      seen under WSL2, where MIOpen's convolution algorithm search (which
+      benchmarks candidate kernels) raises "Invalid elapsed time detected in
+      EvaluateInvokers". FAST mode picks a heuristic algorithm instead of
+      benchmarking, which sidesteps the timing call entirely.
+
+    Both are set with ``setdefault``, so an explicit value already present in
+    the environment (set by the user, or by a previous call) always wins.
+    """
+    if torch.version.hip is None:
+        return
+    os.environ.setdefault("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
+    os.environ.setdefault("MIOPEN_FIND_MODE", "FAST")
+
+
 def resolve_device(name: str = "auto") -> torch.device:
+    configure_rocm_environment()
     if name == "auto":
         if torch.cuda.is_available():
             return torch.device("cuda")
@@ -38,13 +74,14 @@ def resolve_device(name: str = "auto") -> torch.device:
 
 
 def disable_unusable_miopen(device: torch.device) -> None:
-    """Fall back to the precompiled ATen kernels if MIOpen cannot run on this GPU.
+    """Last-resort fallback: disable MIOpen entirely if it still can't run.
 
-    The MIOpen shipped in the ROCm wheels has prebuilt kernels only for
-    gfx9xx/gfx1030; on other targets (e.g. the Radeon 8060S, gfx1151) it
-    falls back to JIT codegen, which fails. Disable MIOpen (the
+    ``resolve_device`` already works around the known gfx1151 MIOpen issues
+    (see ``configure_rocm_environment``), so this should rarely trigger in
+    practice. It stays as a safety net for any other MIOpen failure: falls
+    back to the precompiled ATen kernels by disabling MIOpen (the
     ``torch.backends.cudnn`` flag) so convolutions and batch norm use the
-    precompiled ATen HIP kernels instead.
+    (slower, but always available) native HIP kernels instead.
     """
     if device.type != "cuda":
         return
