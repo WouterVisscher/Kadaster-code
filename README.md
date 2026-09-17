@@ -39,10 +39,9 @@ pip install -e .
 
 ### AMD GPU (ROCm)
 
-Works on ROCm-compatible GPUs, e.g. the Radeon RX 7900 XTX (gfx1100).
-Only a working AMD GPU driver is required — verify with `rocm-smi`; the
-torch wheel bundles the HIP runtime, so no separate ROCm installation is
-needed.
+Works on any ROCm-compatible GPU. Only a working AMD GPU driver is
+required — verify with `rocm-smi`; the torch wheel bundles the HIP
+runtime, so no separate ROCm installation is needed.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -52,6 +51,18 @@ pip install -e .
 
 PyTorch exposes the AMD device through the regular `torch.cuda` API, so
 `--device auto|cuda` and everything else works unchanged.
+
+labelnet never touches ROCm/HIP environment variables itself — if your
+card needs any (e.g. `HSA_OVERRIDE_GFX_VERSION` for GPUs with immature
+ROCm support, such as the Radeon 8060S "Strix Halo" gfx1151 APU, which
+needs `HSA_OVERRIDE_GFX_VERSION=11.0.0` to report as the better-supported
+gfx1100 target), set them in your shell before running any `labelnet`
+command:
+
+```bash
+export HSA_OVERRIDE_GFX_VERSION=11.0.0  # only if your GPU needs it
+labelnet train --device auto ...
+```
 
 ### CPU only
 
