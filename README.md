@@ -64,6 +64,18 @@ export HSA_OVERRIDE_GFX_VERSION=11.0.0  # only if your GPU needs it
 labelnet train --device auto ...
 ```
 
+**MIOpen auto-tuning:** on first use of each convolution shape, MIOpen
+benchmarks candidate kernels to pick the fastest one, which can add
+significant startup time. Setting `MIOPEN_FIND_MODE=FAST` skips the
+benchmarking step and is usually a lot quicker overall. Under WSL it is
+required, not just faster: GPU event timers report zero elapsed time
+there, making the auto-tuning fail with `miopenStatusUnknownError`
+("Invalid elapsed time detected in EvaluateInvokers").
+
+```bash
+export MIOPEN_FIND_MODE=FAST
+```
+
 ### CPU only
 
 ```bash
